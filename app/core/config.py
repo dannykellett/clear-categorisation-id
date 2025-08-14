@@ -25,6 +25,13 @@ class AppConfig(BaseModel):
     default_provider: str = "mock"
     default_model: str = "mock-model"
     
+    # Cache settings
+    use_redis: bool = True
+    redis_url: str = "redis://localhost:6379"
+    
+    # Taxonomy sync settings
+    taxonomy_sync_interval: int = 300  # 5 minutes
+    
     @classmethod
     def from_env(cls) -> "AppConfig":
         """Create config from environment variables"""
@@ -35,6 +42,9 @@ class AppConfig(BaseModel):
             reload=os.getenv("RELOAD", "true").lower() == "true",
             default_provider=os.getenv("DEFAULT_PROVIDER", "mock"),
             default_model=os.getenv("DEFAULT_MODEL", "mock-model"),
+            use_redis=os.getenv("USE_REDIS", "true").lower() == "true",
+            redis_url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+            taxonomy_sync_interval=int(os.getenv("TAXONOMY_SYNC_INTERVAL", "300")),
         )
 
 
