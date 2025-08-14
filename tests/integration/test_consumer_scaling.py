@@ -37,7 +37,32 @@ class TestConsumerScaling:
     
     @pytest.mark.asyncio
     async def test_multiple_consumers_same_group(self):
-        """Test multiple consumer instances in the same consumer group."""
+        """
+        Test multiple consumer instances operating within the same consumer group.
+        
+        This test validates Kafka's consumer group protocol where multiple consumers
+        coordinate to share work efficiently without duplicate processing:
+        
+        Consumer Group Coordination:
+        1. Multiple consumers join the same consumer group
+        2. Kafka coordinator assigns partitions to each consumer
+        3. Each partition is consumed by exactly one consumer
+        4. Work is distributed evenly across all active consumers
+        
+        Test Scenario:
+        - 3 consumer instances join group "test-scaling-group"
+        - Topic has 6 partitions (2 partitions per consumer)
+        - Each consumer processes distinct set of partitions
+        - No message duplication across consumers
+        - Fault tolerance through group membership
+        
+        Expected Behavior:
+        - Each consumer gets assigned unique partition(s)
+        - Messages processed exactly once across the group
+        - Load distributed evenly when possible
+        - Group coordinator manages partition assignments
+        - Consumers maintain independent offset positions
+        """
         with patch('app.consumers.scraped_consumer.get_settings') as mock_settings, \
              patch('app.consumers.base_consumer.AIOKafkaConsumer') as mock_consumer_class:
             

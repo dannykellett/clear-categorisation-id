@@ -42,7 +42,41 @@ class TestKafkaIntegration:
     
     @pytest.mark.asyncio
     async def test_end_to_end_message_flow(self, kafka_setup):
-        """Test complete message flow from scraped to classified."""
+        """
+        Test complete end-to-end message flow from scraped topic to classified topic.
+        
+        This integration test validates the entire Kafka ingestion pipeline by simulating
+        a realistic message processing scenario with all components working together:
+        
+        Message Flow Steps:
+        1. Producer publishes scraped message to 'scraped' topic
+        2. Consumer subscribes and receives the message
+        3. Message schema validation (ScrapedMessage Pydantic model)
+        4. Classification engine processes the text content
+        5. Result enrichment with metadata and usage statistics
+        6. Producer publishes classified result to 'scraped-classified' topic
+        7. Database persistence for audit and recovery
+        
+        Components Integrated:
+        - ScrapedMessageConsumer: Kafka message consumption and orchestration
+        - ClassifiedMessageProducer: Result publishing with delivery guarantees
+        - StreamProcessor: Text classification and message enrichment
+        - Schema Validation: Pydantic models for both input and output
+        - Database Persistence: Idempotent writes for at-least-once delivery
+        
+        Data Validation:
+        - Input message adheres to ScrapedMessage schema
+        - Classification results match ClassifiedMessage schema
+        - Original message ID and article_id preserved for joinability
+        - Taxonomy version and provider information included
+        - Usage statistics accurately captured
+        
+        Expected Behavior:
+        - Zero message loss through the pipeline
+        - Proper error handling and recovery
+        - Idempotent processing for duplicate messages
+        - Performance within target thresholds (<100ms excluding AI)
+        """
         topics = kafka_setup
         
         # Mock the Kafka infrastructure

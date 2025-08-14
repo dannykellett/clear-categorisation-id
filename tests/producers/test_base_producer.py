@@ -85,7 +85,30 @@ class TestBaseKafkaProducer:
     
     @pytest.mark.asyncio
     async def test_send_message_success(self):
-        """Test successful message sending."""
+        """
+        Test successful message sending with proper aiokafka Future handling.
+        
+        This test validates the complex async pattern used by aiokafka where:
+        1. producer.send() returns a Future (not awaitable directly)
+        2. The Future must be awaited separately to get delivery confirmation
+        3. Record metadata contains partition assignment and offset information
+        4. Producer tracks metrics for successful deliveries
+        
+        Mock Strategy:
+        - AIOKafkaProducer.send() returns a Future object
+        - Future resolves to RecordMetadata with delivery details
+        - Producer lifecycle (start/stop) properly managed
+        - Message serialization handled transparently
+        
+        Key Pattern Being Tested:
+        ```
+        future = producer.send(topic, value, key)  # Returns Future
+        record_metadata = await future            # Await the Future
+        ```
+        
+        This pattern is critical for proper Kafka integration and was a source
+        of AsyncMock-related test failures that required specific mock handling.
+        """
         with patch('app.producers.base_producer.AIOKafkaProducer') as mock_producer_class:
             mock_producer = AsyncMock()
             mock_producer_class.return_value = mock_producer

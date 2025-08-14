@@ -31,7 +31,27 @@ class TestErrorRecoveryScenarios:
     
     @pytest.mark.asyncio
     async def test_kafka_connection_failure_and_recovery(self):
-        """Test Kafka connection failure and automatic recovery."""
+        """
+        Test Kafka connection failure and automatic recovery mechanism.
+        
+        This test simulates a network failure scenario where:
+        1. Initial connection attempt fails with KafkaConnectionError
+        2. Consumer implements exponential backoff retry strategy
+        3. Subsequent connection attempt succeeds
+        4. Consumer resumes normal operation after recovery
+        
+        Recovery patterns tested:
+        - Automatic retry with exponential backoff
+        - Connection state management during failures
+        - Proper cleanup of failed connections
+        - Graceful resumption of message processing
+        
+        Expected behavior:
+        - First connection attempt raises KafkaConnectionError
+        - Consumer waits with exponential backoff before retry
+        - Second attempt succeeds and consumer becomes operational
+        - No message loss or duplicate processing after recovery
+        """
         with patch('app.consumers.scraped_consumer.get_settings') as mock_settings, \
              patch('app.consumers.base_consumer.AIOKafkaConsumer') as mock_consumer_class:
             
@@ -484,7 +504,33 @@ class TestErrorRecoveryScenarios:
     
     @pytest.mark.asyncio
     async def test_circuit_breaker_pattern(self):
-        """Test circuit breaker pattern for service failures."""
+        """
+        Test circuit breaker pattern implementation for downstream service failures.
+        
+        This test validates the circuit breaker pattern which protects the system from
+        cascading failures when downstream services (classification engine) are failing:
+        
+        Circuit Breaker States Tested:
+        1. CLOSED: Normal operation, requests pass through
+        2. OPEN: Service failing consistently, requests fail fast
+        3. HALF_OPEN: Testing if service has recovered
+        4. Recovery: Service operational again, circuit closes
+        
+        Test Scenario:
+        1. Classification service fails consistently (5 failures)
+        2. Circuit breaker opens after threshold reached
+        3. Subsequent requests fail fast without calling service
+        4. After timeout, circuit moves to half-open
+        5. Single test request succeeds, circuit closes
+        6. Normal operation resumes
+        
+        Expected Behavior:
+        - First 5 requests trigger actual service calls (and fail)
+        - Circuit opens, protecting system from further failures
+        - Fast-fail responses without service calls during open state
+        - Automatic recovery detection and circuit closure
+        - System resilience maintained during service instability
+        """
         with patch('app.consumers.scraped_consumer.get_settings') as mock_settings:
             mock_settings.return_value.kafka_in_topic = "test-scraped"
             mock_settings.return_value.kafka_group_id = "test-group"
